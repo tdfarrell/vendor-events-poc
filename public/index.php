@@ -14,6 +14,7 @@ define('LARAVEL_START', microtime(true));
 $appDir = null;
 foreach ([
     dirname(__DIR__),                           // standard layout: app/public
+    __DIR__.'/vendor-events-app',               // app folder inside the web folder (protected by its own .htaccess)
     dirname(__DIR__).'/vendor-events-app',      // web folder directly in home
     dirname(__DIR__, 2).'/vendor-events-app',   // web folder inside public_html
     dirname(__DIR__, 3).'/vendor-events-app',

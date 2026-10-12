@@ -4,7 +4,7 @@ The upload zip has two folders:
 
 | Folder | Where it goes | What it is |
 | --- | --- | --- |
-| `vendor-events-app/` | Your home folder, next to `public_html` (never inside it) | The app, its settings and the demo database |
+| `vendor-events-app/` | Your home folder next to `public_html`, or inside the web folder if that is all you can reach (two .htaccess rules then block it from the web) | The app, its settings and the demo database |
 | `web-folder/` | Its **contents** go in echcards.com's web folder | The page entry point, styles and Apache rules |
 
 The settings file (`vendor-events-app/.env`) is already filled in for echcards.com, and the database already holds the demo organizers, vendors and bookings.
