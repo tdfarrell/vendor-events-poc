@@ -1,58 +1,69 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Vendor Events (working name): proof of concept
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A from-scratch Laravel rebuild of the Nutmeg Card Co. show app, reshaped into one platform shared by many Connecticut event organizers. See [SPEC.md](SPEC.md) for what it proves, how organizers are kept apart, and what's deferred.
 
-## About Laravel
+**What's in it**
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Organizers on their own subdomains (`nutmeg.lvh.me`), with name, tagline, brand color and contact details stored in the database.
+- A statewide directory on the root domain (`lvh.me`): upcoming events by type, town and date, and vendor profiles showing where each vendor will be next.
+- Event-type templates: card show, craft fair, flea market, comic and toy show, farmers market, food festival, charity event.
+- The Nutmeg flows, rebuilt: vendor applications with all three payment modes, waitlists, walk-in and cash vendors, ticketing with QR codes and comps, phone-friendly door check-in with cash and card sales, per-event money summary, vendor CSV.
+- One vendor account across every organizer, with passwordless sign-in.
+- Platform fees recorded on every online payment (5% of table fees, $0.75 per ticket).
+- A test checkout page standing in for Stripe, so every flow works without a payment account.
+- 30 automated tests, including 11 that try to reach one organizer's data from another.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Run it locally
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Needs PHP 8.3+ with the SQLite extension, and Composer.
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```sh
+composer setup          # installs, creates .env, builds and seeds the database
+php artisan serve --host=0.0.0.0 --port=8000
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+`lvh.me` and every `*.lvh.me` name point back to your own computer, so subdomains work without any setup.
 
-## Contributing
+| Open | What it is |
+| --- | --- |
+| http://lvh.me:8000 | The directory |
+| http://nutmeg.lvh.me:8000 | Nutmeg Card Co.'s site |
+| http://quarryhill.lvh.me:8000 | Quarry Hill Craft Fairs (fictional) |
+| http://valleyflea.lvh.me:8000 | Valley Flea & Collectibles (fictional) |
+| http://nutmeg.lvh.me:8000/admin | Organizer admin |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+**Organizer logins** (password `password`): `owner@nutmeg.test`, `owner@quarryhill.test`, `owner@valleyflea.test`. Each only works on its own subdomain.
 
-## Code of Conduct
+**Vendors** sign in at http://lvh.me:8000/vendor/login. Locally, the sign-in link appears on screen instead of being emailed. Try `pokepals@example.com`, who has booked with two organizers.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+**Door check-in**: in admin, open an event, go to the Door tab and open the link. It's built for a phone.
 
-## Security Vulnerabilities
+Emails are written to `storage/logs/laravel.log`. To start over with fresh demo data: `php artisan migrate:fresh --seed`.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Tests
 
-## License
+```sh
+php artisan test
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- `DataIsolationTest`: other organizers' public pages, private links, admin records, logins and space types are all unreachable; scoped queries return nothing when no organizer is set.
+- `VendorBookingTest`: the three payment modes, waitlisting, checkout holds expiring, refunds on decline, walk-ins, one vendor account across organizers.
+- `TicketsAndDoorTest`: ticket fees, capacity, QR codes, scanning at the door, door sales, resetting the check-in link.
+- `DirectoryTest`: only published upcoming events, filters, vendor "where I'll be next", vendor sign-in, Facebook link previews.
+
+## Where things live
+
+| Path | What |
+| --- | --- |
+| `app/Tenancy/` | Organizer scope, trait and the current-organizer holder |
+| `app/Http/Middleware/ResolveOrganizer.php` | Subdomain → organizer |
+| `app/Services/Bookings.php` | Space inventory and the vendor application lifecycle (from `inventory.php`) |
+| `app/Services/Ticketing.php` | Ticket sales (from `tickets.php`) |
+| `app/Services/Payments/` | Payment gateway interface and the test gateway |
+| `config/event_types.php` | Event-type templates |
+| `config/platform.php` | Platform name, domain and fees |
+| `routes/web.php` | Directory routes and organizer-site routes |
+
+## Note on the lock file
+
+This was built in an environment that couldn't reach Packagist, so `composer.lock` was assembled from a compatible Laravel 13 lock. `composer install` works as is. Composer may warn the lock is out of date; running `composer update` once on your machine refreshes it.

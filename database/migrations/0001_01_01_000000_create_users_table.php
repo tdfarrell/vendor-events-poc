@@ -11,8 +11,26 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Each organizer is one customer of the platform (one subdomain).
+        Schema::create('organizers', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 150);
+            $table->string('slug', 63)->unique();      // subdomain
+            $table->string('tagline', 200)->default('');
+            $table->string('contact_email', 190)->default('');
+            $table->string('email_from_name', 150)->default('');
+            $table->string('brand_color', 7)->default('#2f5d50');
+            $table->string('town', 100)->default('');
+            $table->string('website', 255)->default('');
+            $table->string('payment_account_id')->nullable(); // Stripe Connect account later
+            $table->timestamps();
+        });
+
+        // Organizer staff. Vendors and attendees are not users.
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('organizer_id')->constrained();
+            $table->string('role', 20)->default('owner'); // owner | staff
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
@@ -43,6 +61,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('users');
+        Schema::dropIfExists('organizers');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }

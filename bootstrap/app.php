@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsureOrganizerStaff;
+use App\Http\Middleware\ResolveOrganizer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,7 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Resolve the organizer before anything else, so route model binding
+        // (and the signed-in user lookup) already run inside its scope.
+        $middleware->web(prepend: ResolveOrganizer::class);
+        $middleware->alias(['staff' => EnsureOrganizerStaff::class]);
+        // Organizer staff go to their own subdomain's login page.
+        $middleware->redirectGuestsTo(fn () => route('admin.login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

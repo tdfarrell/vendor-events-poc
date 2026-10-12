@@ -32,5 +32,9 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="APP_DOMAIN" value="lvh.me"/>
+        <env name="APP_SCHEME" value="http"/>
+        <env name="APP_PUBLIC_PORT" value="80"/>
+        <env name="SESSION_DOMAIN" value="null"/>
     </php>
 </phpunit>
