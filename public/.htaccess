@@ -5,6 +5,11 @@
 
     RewriteEngine On
 
+    # Always use https (skipped for local addresses)
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP_HOST} !(^|\.)(lvh\.me|localhost)(:\d+)?$ [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
     # Never serve the app folder or deploy leftovers, even if they sit in the web folder.
     RewriteRule ^vendor-events-app(/|$) - [F,L]
     RewriteRule ^(web-folder|DEPLOY\.md|echcards-deploy\.zip|error_log)(/|$) - [F,L]
