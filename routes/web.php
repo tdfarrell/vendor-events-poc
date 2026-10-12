@@ -28,6 +28,12 @@ Route::domain($domain)->group(function () {
     Route::put('/vendor/account', [Directory\VendorAccountController::class, 'update']);
 });
 
+// www.{domain} → {domain}
+Route::domain('www.'.$domain)->group(function () {
+    Route::get('/{any?}', fn (string $any = '') => redirect()->away(\App\Models\Organizer::directoryUrl($any), 301))
+        ->where('any', '.*');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Organizer sites: {organizer}.{domain}

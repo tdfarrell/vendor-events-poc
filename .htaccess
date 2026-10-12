@@ -1,0 +1,3 @@
+# The app folder must never be served directly. Only the public/ folder (or
+# its copy in your web folder) should be reachable from the web.
+Require all denied

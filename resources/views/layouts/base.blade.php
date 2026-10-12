@@ -8,6 +8,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', config('platform.name'))</title>
+    @if (config('platform.noindex'))<meta name="robots" content="noindex, nofollow">@endif
     @yield('meta')
     <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=1">
 </head>

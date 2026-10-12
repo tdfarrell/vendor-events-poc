@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\Payments\FakeGateway;
 use App\Services\Payments\PaymentGateway;
 use App\Services\VendorAuth;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -18,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if (config('platform.scheme') === 'https') {
+            URL::forceScheme('https');
+        }
+
         View::composer('*', function ($view) {
             // Look the vendor up once per request, not once per view.
             $attrs = request()->attributes;

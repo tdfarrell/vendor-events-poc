@@ -27,6 +27,13 @@ return [
     // Subdomains organizers can't take.
     'reserved_slugs' => ['www', 'admin', 'app', 'api', 'mail', 'help', 'support', 'static', 'assets'],
 
-    // In local mode, show vendor sign-in links on screen (no mail server needed).
-    'show_login_links' => env('APP_ENV', 'production') === 'local',
+    // Show vendor sign-in links on screen instead of only emailing them.
+    // On by default locally. DEMO ONLY: anyone could sign in as any vendor.
+    'show_login_links' => (bool) env('PLATFORM_SHOW_LOGIN_LINKS', env('APP_ENV', 'production') === 'local'),
+
+    // Ask search engines not to index the site (for public demos).
+    'noindex' => (bool) env('PLATFORM_NOINDEX', false),
+
+    // Show demo logins on organizer sign-in pages.
+    'demo_mode' => (bool) env('PLATFORM_DEMO_MODE', false),
 ];
