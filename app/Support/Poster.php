@@ -66,13 +66,13 @@ class Poster
 
     /**
      * 1200 × 630 PNG for link previews (Facebook, texts). Emoji can't be drawn
-     * here, so it uses the gradient, a flame mark and the title. Cached by
+     * here, so it uses the gradient, a glow with embers, and the title. Cached by
      * event and last update.
      */
     public static function png(string $type, int $seed, string $title, string $line2, string $line3, string $cacheKey): string
     {
         $dir = storage_path('app/share');
-        $file = $dir.'/'.preg_replace('/[^a-z0-9_-]/i', '', $cacheKey).'.png';
+        $file = $dir.'/v2-'.preg_replace('/[^a-z0-9_-]/i', '', $cacheKey).'.png';
         if (is_file($file)) {
             return $file;
         }
@@ -94,14 +94,15 @@ class Poster
         // Soft glow
         for ($i = 14; $i > 0; $i--) {
             $glow = imagecolorallocatealpha($im, 255, 255, 255, 120);
-            imagefilledellipse($im, 980, 140, $i * 60, $i * 60, $glow);
+            imagefilledellipse($im, 1040, 300, $i * 64, $i * 64, $glow);
         }
-        // Flame mark: three overlapping teardrops
-        $white = imagecolorallocatealpha($im, 255, 255, 255, 30);
-        $warm = imagecolorallocatealpha($im, 255, 197, 61, 20);
-        self::drop($im, 1010, 300, 150, $white);
-        self::drop($im, 1060, 340, 95, $warm);
-        self::drop($im, 960, 350, 80, $warm);
+        // A few rising embers.
+        $r = self::rand($seed);
+        for ($i = 0; $i < 14; $i++) {
+            $size = $r(4, 14);
+            $ember = imagecolorallocatealpha($im, 255, $r(190, 235), $r(90, 160), $r(20, 70));
+            imagefilledellipse($im, $r(820, 1160), $r(60, 560), $size, $size, $ember);
+        }
 
         $font = resource_path('fonts/BricolageGrotesque_800ExtraBold.ttf');
         $font2 = resource_path('fonts/BricolageGrotesque_600SemiBold.ttf');
@@ -122,12 +123,6 @@ class Poster
         imagedestroy($im);
 
         return $file;
-    }
-
-    private static function drop($im, int $cx, int $cy, int $r, int $color): void
-    {
-        imagefilledellipse($im, $cx, $cy, $r * 2, $r * 2, $color);
-        imagefilledpolygon($im, [$cx - (int) ($r * 0.92), $cy - (int) ($r * 0.4), $cx, $cy - (int) ($r * 2.1), $cx + (int) ($r * 0.92), $cy - (int) ($r * 0.4)], $color);
     }
 
     private static function rgb(string $hex): array
