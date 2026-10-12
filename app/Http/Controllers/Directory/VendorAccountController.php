@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Directory;
 
 use App\Http\Controllers\Controller;
 use App\Models\VendorApplication;
+use App\Models\VendorPhoto;
+use App\Support\Uploads;
 use App\Services\VendorAuth;
 use App\Tenancy\Tenancy;
 use Illuminate\Http\Request;
@@ -82,11 +84,52 @@ class VendorAccountController extends Controller
             'facebook' => ['nullable', 'string', 'max:255'],
             'website' => ['nullable', 'string', 'max:255'],
             'listed' => ['nullable', 'boolean'],
+            'logo' => ['nullable', 'file', 'max:12288'],
         ]);
+        unset($data['logo']);
         $data['listed'] = $request->boolean('listed');
+        if ($request->hasFile('logo')) {
+            [$path, $err] = Uploads::storeImage($request->file('logo'), 'vendors', 600);
+            if ($err) {
+                return back()->withInput()->with('error', $err);
+            }
+            Uploads::delete($vendor->logo_path);
+            $vendor->logo_path = $path;
+        }
         $vendor->fill(array_map(fn ($v) => $v ?? '', $data))->save();
         $vendor->assignSlug();
 
         return back()->with('status', 'Profile saved.');
+    }
+
+    public function addPhotos(Request $request)
+    {
+        $vendor = VendorAuth::current() ?? abort(redirect()->route('vendor.login'));
+        $request->validate(['photos' => ['required', 'array', 'max:8'], 'photos.*' => ['file', 'max:12288']]);
+        $have = $vendor->photos()->count();
+        $added = 0;
+        foreach ($request->file('photos') as $file) {
+            if ($have + $added >= 8) {
+                break;
+            }
+            [$path, $err] = Uploads::storeImage($file, 'vendors', 1600);
+            if ($err) {
+                return back()->with('error', $err);
+            }
+            $vendor->photos()->create(['path' => $path, 'sort_order' => $have + $added]);
+            $added++;
+        }
+
+        return back()->with('status', $added ? "Added {$added} ".str('photo')->plural($added).'.' : 'You can have up to 8 photos.');
+    }
+
+    public function deletePhoto(VendorPhoto $photo)
+    {
+        $vendor = VendorAuth::current() ?? abort(redirect()->route('vendor.login'));
+        abort_unless($photo->vendor_id === $vendor->id, 404);
+        Uploads::delete($photo->path);
+        $photo->delete();
+
+        return back()->with('status', 'Photo removed.');
     }
 }

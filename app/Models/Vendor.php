@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Uploads;
 use App\Tenancy\Tenancy;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +26,16 @@ class Vendor extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(VendorApplication::class);
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(VendorPhoto::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function logoUrl(): string
+    {
+        return Uploads::url($this->logo_path);
     }
 
     public static function findOrCreateByEmail(string $email): self
@@ -73,7 +84,7 @@ class Vendor extends Model
 
     public function initials(): string
     {
-        $words = preg_split('/\s+/', trim($this->business_name ?: $this->email)) ?: ['?'];
+        $words = array_values(array_filter(preg_split('/\s+/', trim($this->business_name ?: $this->email)) ?: [], fn ($w) => preg_match('/^[\p{L}\p{N}]/u', $w))) ?: ['?'];
 
         return Str::upper(Str::substr($words[0], 0, 1).Str::substr($words[1] ?? '', 0, 1));
     }

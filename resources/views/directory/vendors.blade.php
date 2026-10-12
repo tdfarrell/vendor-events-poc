@@ -3,27 +3,28 @@
 @section('title', 'Vendors · '.config('platform.name'))
 
 @section('content')
-<section class="dir-hero">
-    <h1>Vendors</h1>
-    <p class="muted">Follow the sellers you like from event to event.</p>
-</section>
-
-<form method="get" class="row" style="margin:16px 0 24px">
-    <input type="search" name="q" value="{{ $search }}" placeholder="Search by name, what they sell, or town" style="max-width:420px">
-    <button class="btn">Search</button>
-</form>
+<div class="admin-head">
+    <div>
+        <h1>Vendors</h1>
+        <p class="muted" style="margin:0">Follow the sellers you like from event to event.</p>
+    </div>
+    <form method="get" class="row" role="search">
+        <input type="search" name="q" value="{{ $search }}" placeholder="Name, what they sell, or town" style="min-width:280px">
+        <button class="btn night">Search</button>
+    </form>
+</div>
 
 <div class="grid grid-3">
     @forelse ($vendors as $v)
-        <a class="card vendor-tile" href="{{ route('directory.vendor', $v->slug) }}">
-            <span class="avatar">{{ $v->initials() }}</span>
-            <span>
+        <a class="card lift vendor-tile" style="padding:16px" href="{{ route('directory.vendor', $v->slug) }}">
+            <x-avatar :name="$v->business_name" :src="$v->logoUrl()" />
+            <span style="min-width:0">
                 <strong>{{ $v->business_name }}</strong><br>
-                <small>{{ collect([$v->town, Str::limit($v->categories, 48)])->filter()->join(' · ') ?: 'Vendor' }}</small>
+                <small>{{ collect([$v->town, Str::limit($v->categories, 44)])->filter()->join(' · ') ?: 'Vendor' }}</small>
             </span>
         </a>
     @empty
-        <p>No vendors found.</p>
+        <div class="card"><p style="margin:0">No vendors match “{{ $search }}”.</p></div>
     @endforelse
 </div>
 @endsection

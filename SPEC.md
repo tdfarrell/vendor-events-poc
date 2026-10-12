@@ -79,3 +79,13 @@ Floor plan editor and public map, raffles, event photo galleries, vendor photo u
 - `APP_DOMAIN=lvh.me` (any `*.lvh.me` name resolves to your own machine).
 - `php artisan serve --host=0.0.0.0 --port=8000`, then open `http://lvh.me:8000` and `http://nutmeg.lvh.me:8000`.
 - Emails go to `storage/logs/laravel.log`. In local mode the vendor sign-in page also shows the link on screen.
+
+## Round two
+
+Working name **Bonfire**. Added: Bonfire design and branding, the directory landing page with category tiles and a map, generated posters and share images, richer event pages, a sectioned event editor with cover photo, gallery, map pin, amenities and FAQ, duplicate event, the floor plan builder and public map, financials across events, vendor messaging, an email log, camera QR scanning, organizer sign-up, off-platform listings with claims, and a platform admin.
+
+New organizer-scoped tables: `event_photos`, `floor_plans`, `email_log`. Platform-wide: `vendor_photos`, `listings`, `listing_claims`, `platform_admins`. The email log is organizer-scoped like everything else, so an organizer only sees email sent in its name.
+
+Organizer sign-up creates the organizer as **pending**: on shared hosting each subdomain still needs a cPanel subdomain, a DNS record and a certificate, so someone marks it live in platform admin after setting those up.
+
+Still deferred: real payments (Stripe Connect), sending email (the demo logs it), custom domains, raffles, and vendor document uploads.

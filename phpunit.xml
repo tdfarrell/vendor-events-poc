@@ -36,5 +36,6 @@
         <env name="APP_SCHEME" value="http"/>
         <env name="APP_PUBLIC_PORT" value="80"/>
         <env name="SESSION_DOMAIN" value="null"/>
+        <env name="PLATFORM_GEOCODE" value="false"/>
     </php>
 </phpunit>

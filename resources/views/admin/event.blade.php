@@ -4,18 +4,33 @@
 @php $M = fn ($c) => \App\Support\Money::format($c); @endphp
 
 @section('content')
-<p><a href="{{ route('admin.dashboard') }}">← Events</a></p>
-<div class="row between" style="margin-bottom:6px">
+<a class="crumb" href="{{ route('admin.dashboard') }}">← Events</a>
+<div class="ev-admin-card" style="grid-template-columns:150px minmax(0,1fr);border:0;padding:0;background:none;margin-bottom:10px">
+    <div class="ev-art"><x-poster :event="$event" /></div>
     <div>
-        <div class="type-tag">{{ $event->typeLabel() }}</div>
-        <h1 style="margin:0">{{ $event->title }}</h1>
+        <div class="row" style="gap:6px;margin-bottom:6px">
+            <span class="badge {{ $event->status }}">{{ \App\Models\Event::STATUSES[$event->status] }}</span>
+            <span class="badge">{{ $event->typeConfig()['emoji'] }} {{ $event->typeLabel() }}</span>
+            @if ($event->notice)<span class="badge bad">{{ ucfirst($event->notice) }}</span>@endif
+        </div>
+        <h1 style="margin:0 0 4px;font-size:clamp(1.7rem,3vw,2.3rem)">{{ $event->title }}</h1>
         <div class="muted">{{ $event->whenWhere() }}</div>
     </div>
-    <div class="row">
-        <span class="badge {{ $event->status }}">{{ \App\Models\Event::STATUSES[$event->status] }}</span>
-        <a class="btn small" href="{{ route('site.event', $event) }}" target="_blank">View page ↗</a>
-        <a class="btn small" href="{{ route('admin.events.edit', $event) }}">Edit</a>
-    </div>
+</div>
+<div class="row" style="margin-bottom:6px">
+    <a class="btn small" href="{{ route('admin.events.edit', $event) }}">Edit details</a>
+    <a class="btn small" href="{{ route('admin.floor-plan', $event) }}">Floor plan @if ($unsentTables)<span class="badge warn">{{ $unsentTables }} to email</span>@endif</a>
+    <a class="btn small" href="{{ route('admin.messages.create', $event) }}">Message vendors</a>
+    <details class="no-print" style="display:inline-block;position:relative">
+        <summary class="btn small" style="list-style:none">Duplicate</summary>
+        <form method="post" action="{{ route('admin.events.duplicate', $event) }}" class="card lift" style="position:absolute;z-index:20;top:44px;left:0;width:290px">
+            @csrf
+            <p style="margin-top:0;font-size:.9rem">Copies details, {{ $event->space(true) }}, ticket types and the floor plan into a new draft. Vendors and sales stay here.</p>
+            <div class="field"><label>Date of the new event</label><input type="date" name="starts_on" value="{{ $event->starts_on?->copy()->addMonth()->format('Y-m-d') }}"></div>
+            <button class="btn fire block">Make a copy</button>
+        </form>
+    </details>
+    <a class="btn small" href="{{ route('site.event', $event) }}" target="_blank">View page ↗</a>
 </div>
 
 <div class="stats" style="margin:18px 0">
@@ -128,7 +143,7 @@
         @endforeach
         <form id="tt-new" method="post" action="{{ route('admin.events.table-types', $event) }}">@csrf</form>
     </div>
-    <p class="muted" style="margin-top:12px">The floor plan editor and public map from the Nutmeg app come in the next phase.</p>
+    <p style="margin-top:12px"><a class="btn" href="{{ route('admin.floor-plan', $event) }}">Lay these out in the floor plan builder</a></p>
 @endif
 
 @if ($tab === 'tickets')

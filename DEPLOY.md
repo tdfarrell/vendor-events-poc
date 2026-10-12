@@ -1,5 +1,18 @@
 # Putting the demo on Bluehost (echcards.com)
 
+## Updating to round two (Bonfire)
+
+The round-two zip replaces everything, including the demo database (its structure changed). In File Manager, in echcards.com's root folder:
+
+1. Delete `vendor-events-app`, `index.php`, `css`, and `.htaccess` (hidden files on).
+2. Upload `echcards-site.zip`, extract it into the same folder, then delete the zip.
+3. The new zip adds `fonts`, `js`, `vendor` (the map library), `uploads` (photos people upload) and `favicon.svg`. Keep `uploads` from now on when updating, so uploaded photos survive.
+4. Add DNS records and subdomains (as below) for the two new demo organizers: **hillsmarket** and **brasscity**.
+
+Platform admin is at https://echcards.com/platform (`admin@echcards.com` / `password` in the demo).
+
+## First-time setup
+
 The upload zip has two folders:
 
 | Folder | Where it goes | What it is |
@@ -61,6 +74,9 @@ Sign-in only works over **https**, so wait for the certificates before testing l
 | https://quarryhill.echcards.com | Quarry Hill Craft Fairs (fictional) |
 | https://valleyflea.echcards.com | Valley Flea & Collectibles (fictional) |
 | https://nutmeg.echcards.com/admin | Organizer admin (`owner@nutmeg.test` / `password`) |
+| https://hillsmarket.echcards.com | Litchfield Hills Market (fictional) |
+| https://brasscity.echcards.com | Brass City Comic & Toy (fictional) |
+| https://echcards.com/platform | Platform admin (`admin@echcards.com` / `password`) |
 
 Each organizer's sign-in page shows its demo login. Vendors sign in at https://echcards.com/vendor/login; the sign-in link shows on screen.
 

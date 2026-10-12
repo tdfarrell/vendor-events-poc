@@ -5,10 +5,10 @@
 @php $M = fn ($c) => \App\Support\Money::format($c); @endphp
 
 @section('topbar')
-<header @class(['topbar', 'light' => $organizer->brandInk() === '#111111'])>
-    <div class="wrap" style="min-height:52px">
-        <span class="brand" style="font-size:1rem">{{ $event->title }}<small>Door check-in · {{ $event->starts_on?->format('D, M j') }}</small></span>
-        <nav><a href="{{ route('checkin', ['token' => $token, 'tab' => $tab]) }}">Refresh</a></nav>
+<header class="topbar door-head">
+    <div class="wrap" style="min-height:56px">
+        <span class="row" style="gap:10px;flex-wrap:nowrap;min-width:0;flex:1"><x-logo :size="26" :word="false" /><span class="org-name" style="font-size:1rem;min-width:0"><span>{{ $event->title }}<small>Door check-in · {{ $event->starts_on?->format('D, M j') }}</small></span></span></span>
+        <nav style="margin-left:auto"><a href="{{ route('checkin', ['token' => $token, 'tab' => $tab]) }}">Refresh</a></nav>
     </div>
 </header>
 @endsection
@@ -54,12 +54,14 @@
             </div>
         @endif
 
-        <form method="post" action="{{ route('checkin.scan', $token) }}" class="card">
+        <div class="scanner" id="scanner" hidden><video id="scanVideo" playsinline muted></video><div class="frame"></div></div>
+        <form method="post" action="{{ route('checkin.scan', $token) }}" class="card" id="scanForm">
             @csrf
-            <label for="code">Ticket code, or buyer name or email</label>
-            <input id="code" class="code" name="code" type="text" autocomplete="off" autocapitalize="characters" autofocus placeholder="ABCD-EFGH">
+            <button type="button" class="btn fire big block" id="scanBtn" style="margin-bottom:14px">Scan a ticket with the camera</button>
+            <label for="code">Or type the code, a name or an email</label>
+            <input id="code" class="code" name="code" type="text" autocomplete="off" autocapitalize="characters" placeholder="ABCD-EFGH">
             <button class="btn primary big block" style="margin-top:10px">Check in</button>
-            <p class="muted" style="font-size:.84rem;margin:10px 0 0">Camera scanning comes in the full build. For now, type the code under the QR.</p>
+            <p class="muted" id="scanHint" style="font-size:.84rem;margin:10px 0 0" hidden></p>
         </form>
     @endif
 
@@ -159,3 +161,43 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+@if ($tab === 'tickets')
+<script src="{{ asset('js/jsQR.js') }}"></script>
+<script>
+(function () {
+    var btn = document.getElementById('scanBtn'), box = document.getElementById('scanner'), video = document.getElementById('scanVideo');
+    var form = document.getElementById('scanForm'), input = document.getElementById('code'), hint = document.getElementById('scanHint');
+    var stream = null, canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true });
+    function stop() { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; box.hidden = true; btn.textContent = 'Scan a ticket with the camera'; }
+    function tick() {
+        if (!stream) return;
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var hit = window.jsQR && jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+            if (hit && hit.data) {
+                input.value = hit.data; stop();
+                if (navigator.vibrate) navigator.vibrate(60);
+                form.submit(); return;
+            }
+        }
+        requestAnimationFrame(tick);
+    }
+    btn.addEventListener('click', function () {
+        if (stream) { stop(); return; }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            hint.hidden = false; hint.textContent = 'This browser can’t use the camera here. Type the code instead.'; return;
+        }
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then(function (s) {
+            stream = s; video.srcObject = s; video.play(); box.hidden = false; btn.textContent = 'Stop camera'; requestAnimationFrame(tick);
+        }).catch(function () {
+            hint.hidden = false; hint.textContent = 'Camera access was blocked. Allow it in your browser settings, or type the code.';
+        });
+    });
+})();
+</script>
+@endif
+@endpush

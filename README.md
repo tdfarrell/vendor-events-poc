@@ -1,4 +1,4 @@
-# Vendor Events (working name): proof of concept
+# Bonfire (working name): proof of concept
 
 A from-scratch Laravel rebuild of the Nutmeg Card Co. show app, reshaped into one platform shared by many Connecticut event organizers. See [SPEC.md](SPEC.md) for what it proves, how organizers are kept apart, and what's deferred.
 
@@ -11,7 +11,18 @@ A from-scratch Laravel rebuild of the Nutmeg Card Co. show app, reshaped into on
 - One vendor account across every organizer, with passwordless sign-in.
 - Platform fees recorded on every online payment (5% of table fees, $0.75 per ticket).
 - A test checkout page standing in for Stripe, so every flow works without a payment account.
-- 30 automated tests, including 11 that try to reach one organizer's data from another.
+- 42 automated tests, including the ones that try to reach one organizer's data from another.
+
+**Round two** added:
+
+- Bonfire branding: flame logo, night-sky and flame-gradient design, Bricolage Grotesque and Figtree fonts (both under the SIL Open Font License, in `public/fonts`).
+- A directory landing page with search, category tiles, a "this weekend" strip, a list beside a map with pins (Leaflet and OpenStreetMap), vendor spotlight, and off-platform listings that organizers can claim.
+- Generated posters in each category's colors for events without a cover photo, and PNG share images for Facebook and text previews.
+- Event pages with cover photo or poster, who's coming avatars, amenities, FAQ, photo gallery, location map with directions, organizer card, share buttons and add-to-calendar.
+- A sectioned event editor (cover photo, gallery, map pin, amenities, FAQ), and duplicate-an-event for recurring shows.
+- The Nutmeg floor plan builder and public floor map, ported, with table-number emails and layout copying.
+- Financials across all events, with a by-month chart and CSV export.
+- Message vendors by group, an email log of everything sent, camera QR scanning at the door, organizer sign-up, and a platform admin for organizers, listings and claims.
 
 ## Run it locally
 
@@ -30,9 +41,13 @@ php artisan serve --host=0.0.0.0 --port=8000
 | http://nutmeg.lvh.me:8000 | Nutmeg Card Co.'s site |
 | http://quarryhill.lvh.me:8000 | Quarry Hill Craft Fairs (fictional) |
 | http://valleyflea.lvh.me:8000 | Valley Flea & Collectibles (fictional) |
+| http://hillsmarket.lvh.me:8000 | Litchfield Hills Market (fictional) |
+| http://brasscity.lvh.me:8000 | Brass City Comic & Toy (fictional) |
 | http://nutmeg.lvh.me:8000/admin | Organizer admin |
 
-**Organizer logins** (password `password`): `owner@nutmeg.test`, `owner@quarryhill.test`, `owner@valleyflea.test`. Each only works on its own subdomain.
+**Organizer logins** (password `password`): `owner@nutmeg.test`, `owner@quarryhill.test`, `owner@valleyflea.test`, `owner@hillsmarket.test`, `owner@brasscity.test`. Each only works on its own subdomain.
+
+**Platform admin** (organizers, listings, claims): http://lvh.me:8000/platform with `admin@lvh.me` / `password`.
 
 **Vendors** sign in at http://lvh.me:8000/vendor/login. Locally, the sign-in link appears on screen instead of being emailed. Try `pokepals@example.com`, who has booked with two organizers.
 
@@ -60,9 +75,15 @@ php artisan test
 | `app/Services/Bookings.php` | Space inventory and the vendor application lifecycle (from `inventory.php`) |
 | `app/Services/Ticketing.php` | Ticket sales (from `tickets.php`) |
 | `app/Services/Payments/` | Payment gateway interface and the test gateway |
-| `config/event_types.php` | Event-type templates |
 | `config/platform.php` | Platform name, domain and fees |
 | `routes/web.php` | Directory routes and organizer-site routes |
+| `app/Services/FloorPlans.php`, `public/js/floorplan.js` | Floor plan builder and public map (from the Nutmeg app) |
+| `app/Services/Finances.php` | Money per event and across events |
+| `app/Support/Poster.php` | Generated posters (SVG) and share images (PNG) |
+| `app/Support/Uploads.php` | Photo uploads: resized and re-encoded, stored in `public/uploads` |
+| `config/event_types.php` | Event-type templates, colors and emoji |
+
+Third-party code bundled in `public/`: Leaflet 1.9.4 (BSD-2-Clause, `public/vendor/leaflet/LICENSE`) and jsQR (Apache-2.0) for camera scanning. Map tiles come from OpenStreetMap; address lookups use OpenStreetMap's Nominatim, one request per save.
 
 ## Note on the lock file
 

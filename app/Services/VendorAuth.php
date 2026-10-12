@@ -51,7 +51,7 @@ class VendorAuth
         Notifier::send(null, $email, 'Your sign-in link for '.config('platform.name'), [
             'Use the link below to sign in to your vendor account. It works once and expires in 30 minutes.',
             "If you didn't ask for this, you can ignore this email.",
-        ], ['label' => 'Sign in', 'url' => $url]);
+        ], ['label' => 'Sign in', 'url' => $url], 'login');
 
         return $url;
     }

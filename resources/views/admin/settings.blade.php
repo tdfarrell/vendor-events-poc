@@ -2,14 +2,19 @@
 @section('page', 'Settings')
 
 @section('content')
-<h1>Settings</h1>
+<div class="admin-head"><h1>Settings</h1></div>
 <div class="cols">
-    <form method="post" action="{{ route('admin.settings') }}" class="card">
+    <form method="post" action="{{ route('admin.settings') }}" class="card lift" enctype="multipart/form-data">
         @csrf @method('put')
         <h2>Branding</h2>
         @unless (auth()->user()->isOwner())<div class="alert info">Only the account owner can change these.</div>@endunless
         <div class="field"><label>Organizer name</label><input type="text" name="name" required value="{{ old('name', $org->name) }}"></div>
         <div class="field"><label>Tagline</label><input type="text" name="tagline" value="{{ old('tagline', $org->tagline) }}"></div>
+        <div class="field"><label>About you <span class="hint">shown on your event pages</span></label><textarea name="about" rows="3">{{ old('about', $org->about) }}</textarea></div>
+        <div class="field">
+            <label>Logo <span class="hint">square works best</span></label>
+            <div class="row"><span class="org-mark" style="background:var(--brand);color:var(--brand-ink);width:54px;height:54px;border-radius:16px">@if ($org->logo_path)<img src="{{ $org->logoUrl() }}" alt="">@else{{ $org->initials() }}@endif</span><input type="file" name="logo" accept="image/*"></div>
+        </div>
         <div class="field">
             <label>Brand color</label>
             <div class="row"><input type="color" name="brand_color" value="{{ old('brand_color', $org->brand_color) }}"><span class="muted">Used for your header, buttons and event cards in the directory.</span></div>
@@ -22,7 +27,8 @@
             <div class="field"><label>Home town</label><input type="text" name="town" value="{{ old('town', $org->town) }}"></div>
             <div class="field"><label>Website</label><input type="text" name="website" value="{{ old('website', $org->website) }}"></div>
         </div>
-        <button class="btn primary" @disabled(! auth()->user()->isOwner())>Save settings</button>
+        <div class="field"><label>Phone <span class="hint">optional</span></label><input type="tel" name="phone" value="{{ old('phone', $org->phone) }}"></div>
+        <button class="btn fire" @disabled(! auth()->user()->isOwner())>Save settings</button>
     </form>
     <div class="stack">
         <div class="card">

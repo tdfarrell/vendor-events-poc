@@ -11,7 +11,7 @@
 </div>
 
 <div class="cols">
-    <section class="card flush">
+    <section class="card flush lift">
         <div class="card-head"><h2>My bookings</h2><small>Across every organizer</small></div>
         <div class="table-wrap">
             <table class="list">
@@ -32,11 +32,16 @@
         </div>
     </section>
 
-    <section class="card">
+    <section class="card lift">
         <h2>Profile</h2>
         <p class="muted" style="font-size:.9rem">Organizers see this when you apply, and shoppers see it in the directory if you choose.</p>
-        <form method="post" action="{{ route('vendor.account') }}">
+        <div class="row" style="gap:14px;margin-bottom:14px">
+            <x-avatar :name="$vendor->business_name ?: $vendor->email" :src="$vendor->logoUrl()" size="lg" />
+            <small class="muted">Your logo shows on event pages, floor maps and your profile.</small>
+        </div>
+        <form method="post" action="{{ route('vendor.account') }}" enctype="multipart/form-data">
             @csrf @method('put')
+            <div class="field"><label>Logo <span class="hint">square works best</span></label><input type="file" name="logo" accept="image/*"></div>
             <div class="field"><label>Business name</label><input type="text" name="business_name" required value="{{ old('business_name', $vendor->business_name) }}"></div>
             <div class="field"><label>Contact name</label><input type="text" name="contact_name" value="{{ old('contact_name', $vendor->contact_name) }}"></div>
             <div class="fields-2">
@@ -49,7 +54,24 @@
             <div class="field"><label>Facebook</label><input type="text" name="facebook" value="{{ old('facebook', $vendor->facebook) }}"></div>
             <div class="field"><label>Website</label><input type="text" name="website" value="{{ old('website', $vendor->website) }}"></div>
             <div class="field"><label class="check"><input type="checkbox" name="listed" value="1" @checked(old('listed', $vendor->listed))> Show my profile in the public vendor directory</label></div>
-            <button class="btn primary">Save profile</button>
+            <button class="btn fire">Save profile</button>
+        </form>
+        <hr>
+        <h3>Photos</h3>
+        <p class="muted" style="font-size:.9rem">Show your table or what you sell. Up to 8.</p>
+        @if ($vendor->photos->isNotEmpty())
+            <div class="thumbs">
+                @foreach ($vendor->photos as $p)
+                    <div class="t"><img src="{{ $p->url() }}" alt="">
+                        <form method="post" action="{{ route('vendor.photos.delete', $p) }}">@csrf<button aria-label="Remove photo">×</button></form>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+        <form method="post" action="{{ route('vendor.photos') }}" enctype="multipart/form-data" class="row">
+            @csrf
+            <input type="file" name="photos[]" accept="image/*" multiple required style="flex:1">
+            <button class="btn small">Upload</button>
         </form>
     </section>
 </div>

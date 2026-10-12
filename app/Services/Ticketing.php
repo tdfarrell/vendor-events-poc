@@ -193,6 +193,6 @@ class Ticketing
             "You're all set: {$count} ".Str::plural('ticket', $count)." for {$event->title}.",
             'Event: '.$event->whenWhere().($order->total_cents ? "\nPaid: ".Money::format($order->total_cents) : ''),
             'Show the QR codes on your phone at the door, or give your name.',
-        ], ['label' => 'View my tickets', 'url' => $event->organizer->url('/orders/'.$order->order_token)]);
+        ], ['label' => 'View my tickets', 'url' => $event->organizer->url('/orders/'.$order->order_token)], 'tickets', $event->id);
     }
 }

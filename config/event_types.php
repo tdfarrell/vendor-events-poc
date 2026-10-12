@@ -6,11 +6,15 @@
  *
  * space / spaces: what a sellable spot is called on this kind of event.
  * free_admission: whether attendees usually get in free.
+ * emoji and colors: the generated poster and category tile when there's no cover photo.
  */
 
 return [
 
     'card_show' => [
+        'plural' => 'Card shows',
+        'emoji' => '🃏',
+        'colors' => ['#3B4BFF', '#9B5CFF'],
         'label' => 'Card show',
         'space' => 'table',
         'spaces' => 'tables',
@@ -26,6 +30,9 @@ return [
     ],
 
     'craft_fair' => [
+        'plural' => 'Craft fairs',
+        'emoji' => '🧶',
+        'colors' => ['#FF6A2B', '#E8336D'],
         'label' => 'Craft or holiday fair',
         'space' => 'booth',
         'spaces' => 'booths',
@@ -39,6 +46,9 @@ return [
     ],
 
     'flea_market' => [
+        'plural' => 'Flea markets',
+        'emoji' => '🏺',
+        'colors' => ['#C2781A', '#7A3E1D'],
         'label' => 'Flea market',
         'space' => 'space',
         'spaces' => 'spaces',
@@ -53,6 +63,9 @@ return [
     ],
 
     'comic_toy_show' => [
+        'plural' => 'Comic & toy shows',
+        'emoji' => '🧸',
+        'colors' => ['#E8336D', '#7B2FF7'],
         'label' => 'Comic and toy show',
         'space' => 'table',
         'spaces' => 'tables',
@@ -67,6 +80,9 @@ return [
     ],
 
     'farmers_market' => [
+        'plural' => 'Farmers markets',
+        'emoji' => '🥕',
+        'colors' => ['#2E9D5B', '#C3D42A'],
         'label' => 'Farmers market',
         'space' => 'stall',
         'spaces' => 'stalls',
@@ -79,6 +95,9 @@ return [
     ],
 
     'food_festival' => [
+        'plural' => 'Food festivals',
+        'emoji' => '🌮',
+        'colors' => ['#FF9F1C', '#FF3D3D'],
         'label' => 'Food festival',
         'space' => 'spot',
         'spaces' => 'spots',
@@ -94,6 +113,9 @@ return [
     ],
 
     'charity_event' => [
+        'plural' => 'Community events',
+        'emoji' => '🎪',
+        'colors' => ['#1F8FD6', '#2EC4B6'],
         'label' => 'Charity or community event',
         'space' => 'table',
         'spaces' => 'tables',

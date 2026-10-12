@@ -316,6 +316,11 @@ class Bookings
 
     /* ---------------- emails ---------------- */
 
+    private function mailVendor(VendorApplication $app, string $subject, array $lines, ?array $button = null): void
+    {
+        Notifier::send($app->event->organizer, $app->email, $subject, $lines, $button, 'booking', $app->event_id);
+    }
+
     private function details(VendorApplication $app, string $amountLabel = 'Requested'): string
     {
         $lines = ['Event: '.$app->event->whenWhere(), $amountLabel.': '.$app->tableSummary()];
@@ -328,7 +333,7 @@ class Bookings
 
     private function emailReceived(VendorApplication $app): void
     {
-        Notifier::send($app->event->organizer, $app->email, "We got your vendor application: {$app->event->title}", [
+        $this->mailVendor($app, "We got your vendor application: {$app->event->title}", [
             "Hi {$app->contact_name},",
             "Thanks for applying to vend at {$app->event->title}. Every application is reviewed by hand, and you'll hear back within a few days.",
             $this->details($app),
@@ -338,7 +343,7 @@ class Bookings
 
     private function emailPaidUnderReview(VendorApplication $app): void
     {
-        Notifier::send($app->event->organizer, $app->email, "Application and payment received: {$app->event->title}", [
+        $this->mailVendor($app, "Application and payment received: {$app->event->title}", [
             "Hi {$app->contact_name},",
             'Your payment of '.Money::format($app->amount_cents).' went through, and your '.$app->event->space().' is held while your application is reviewed.',
             $this->details($app),
@@ -348,7 +353,7 @@ class Bookings
 
     private function emailApproved(VendorApplication $app): void
     {
-        Notifier::send($app->event->organizer, $app->email, "You're approved for {$app->event->title}: pay to confirm", [
+        $this->mailVendor($app, "You're approved for {$app->event->title}: pay to confirm", [
             "Hi {$app->contact_name},",
             "Good news: {$app->business_name} is approved to vend at {$app->event->title}.",
             $this->details($app, 'Space'),
@@ -368,13 +373,13 @@ class Bookings
         if ($app->event->vendor_setup) {
             $lines[] = 'Vendor setup: '.$app->event->vendor_setup;
         }
-        Notifier::send($app->event->organizer, $app->email, "Confirmed: your spot at {$app->event->title}", $lines,
+        $this->mailVendor($app, "Confirmed: your spot at {$app->event->title}", $lines,
             ['label' => 'View my booking', 'url' => $app->statusUrl()]);
     }
 
     private function emailWaitlisted(VendorApplication $app): void
     {
-        Notifier::send($app->event->organizer, $app->email, "You're on the waitlist for {$app->event->title}", [
+        $this->mailVendor($app, "You're on the waitlist for {$app->event->title}", [
             "Hi {$app->contact_name},",
             "The {$app->event->space(true)} you asked for are full right now, so {$app->business_name} is on the waitlist.",
             "If one opens up, you'll get a link to pay and confirm it. Nothing to do in the meantime.",
@@ -390,7 +395,7 @@ class Bookings
         if ($app->refunded_at) {
             $lines[] = 'Your payment of '.Money::format($app->refunded_cents).' has been refunded in full.';
         }
-        Notifier::send($app->event->organizer, $app->email, "Your application for {$app->event->title}", $lines);
+        $this->mailVendor($app, "Your application for {$app->event->title}", $lines);
     }
 
     private function notifyOrganizer(VendorApplication $app): void
@@ -408,6 +413,6 @@ class Bookings
         Notifier::send($organizer, $organizer->contact_email, $subject, [
             "{$app->business_name} ({$app->contact_name}, {$app->email}) for {$app->event->title}.",
             $this->details($app),
-        ], ['label' => 'Open in admin', 'url' => $organizer->url('/admin/applications/'.$app->id)]);
+        ], ['label' => 'Open in admin', 'url' => $organizer->url('/admin/applications/'.$app->id)], 'organizer', $app->event_id);
     }
 }

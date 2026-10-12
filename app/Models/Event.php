@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Support\Uploads;
 use App\Tenancy\BelongsToOrganizer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Event extends Model
@@ -28,6 +30,10 @@ class Event extends Model
             'starts_on' => 'date',
             'applications_open' => 'boolean',
             'tickets_on_sale' => 'boolean',
+            'amenities' => 'array',
+            'faq' => 'array',
+            'lat' => 'float',
+            'lng' => 'float',
         ];
     }
 
@@ -59,6 +65,71 @@ class Event extends Model
     public function doorSales(): HasMany
     {
         return $this->hasMany(DoorSale::class);
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(EventPhoto::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function floorPlan(): HasOne
+    {
+        return $this->hasOne(FloorPlan::class);
+    }
+
+    public function coverUrl(): string
+    {
+        return Uploads::url($this->cover_path);
+    }
+
+    /** PNG for Facebook and other link previews: the cover photo, or a generated poster. */
+    public function shareImageUrl(): string
+    {
+        return $this->cover_path ? $this->coverUrl() : $this->organizer->url('/events/'.$this->slug.'/share.png');
+    }
+
+    public function hasLocation(): bool
+    {
+        return $this->lat !== null && $this->lng !== null;
+    }
+
+    public function fullAddress(): string
+    {
+        return collect([$this->venue_address, $this->town, $this->town ? config('platform.state') : null])->filter()->join(', ');
+    }
+
+    public function directionsUrl(): string
+    {
+        $q = $this->hasLocation() ? $this->lat.','.$this->lng : trim($this->venue_name.' '.$this->fullAddress());
+
+        return 'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($q);
+    }
+
+    public function googleCalendarUrl(): string
+    {
+        $day = $this->starts_on?->format('Ymd');
+        $next = $this->starts_on?->copy()->addDay()->format('Ymd');
+
+        return 'https://calendar.google.com/calendar/render?'.http_build_query([
+            'action' => 'TEMPLATE',
+            'text' => $this->title,
+            'dates' => $day ? $day.'/'.$next : '',
+            'details' => trim(($this->hours ? $this->hours."\n" : '').$this->publicUrl()),
+            'location' => trim($this->venue_name.', '.$this->fullAddress(), ', '),
+        ]);
+    }
+
+    /** [emoji, label] for each amenity the organizer ticked. */
+    public function amenityList(): array
+    {
+        $all = config('platform.amenities');
+
+        return array_values(array_filter(array_map(fn ($k) => $all[$k] ?? null, $this->amenities ?? [])));
+    }
+
+    public function faqList(): array
+    {
+        return array_values(array_filter($this->faq ?? [], fn ($f) => trim($f['q'] ?? '') !== '' && trim($f['a'] ?? '') !== ''));
     }
 
     public function scopePublished(Builder $q): Builder

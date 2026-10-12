@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Uploads;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -28,6 +29,23 @@ class Organizer extends Model
         $default = ($scheme === 'https' && $port === '443') || ($scheme === 'http' && $port === '80') || $port === '';
 
         return $scheme.'://'.$host.($default ? '' : ':'.$port).'/'.ltrim($path, '/');
+    }
+
+    public function logoUrl(): string
+    {
+        return Uploads::url($this->logo_path);
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    public function initials(): string
+    {
+        $words = array_values(array_filter(preg_split('/\s+/', trim($this->name)) ?: [], fn ($w) => preg_match('/^[\p{L}\p{N}]/u', $w))) ?: ['?'];
+
+        return mb_strtoupper(mb_substr($words[0], 0, 1).mb_substr($words[1] ?? '', 0, 1));
     }
 
     public function fromName(): string

@@ -1,9 +1,9 @@
 @extends('layouts.base')
 
 @section('topbar')
-<header class="topbar" style="--brand:#1d3b33">
+<header class="topbar">
     <div class="wrap">
-        <a class="brand" href="{{ route('directory.events') }}">{{ config('platform.name') }}<small>Vendor events across {{ config('platform.state') === 'CT' ? 'Connecticut' : config('platform.state') }}</small></a>
+        <a href="{{ route('directory.events') }}" aria-label="{{ config('platform.name') }} home"><x-logo /></a>
         <nav>
             <a href="{{ route('directory.events') }}" @class(['on' => request()->routeIs('directory.events')])>Events</a>
             <a href="{{ route('directory.vendors') }}" @class(['on' => request()->routeIs('directory.vendor*')])>Vendors</a>
@@ -12,17 +12,19 @@
             @else
                 <a href="{{ route('vendor.login') }}" @class(['on' => request()->routeIs('vendor.*')])>Vendor sign in</a>
             @endif
+            <a class="nav-cta" href="{{ route('signup') }}">Host an event</a>
         </nav>
     </div>
 </header>
 @endsection
 
 @section('body')
+@yield('before')
 <main>
     <div class="@yield('width', 'wrap')">
         @include('components.flash')
         @yield('content')
     </div>
 </main>
-<footer class="site"><div class="wrap">{{ config('platform.name') }} (working name) · Proof of concept</div></footer>
+@include('layouts.footer')
 @endsection

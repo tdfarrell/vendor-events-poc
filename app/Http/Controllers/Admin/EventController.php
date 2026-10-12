@@ -5,11 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Site\CheckinController;
 use App\Models\Event;
+use App\Models\EventPhoto;
 use App\Models\TableType;
 use App\Models\TicketType;
 use App\Services\Bookings;
+use App\Services\Finances;
+use App\Services\FloorPlans;
+use App\Services\Geocoder;
 use App\Services\Ticketing;
 use App\Support\Money;
+use App\Support\Uploads;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -28,6 +33,11 @@ class EventController extends Controller
                 'admission_note' => $type && config("event_types.$type.free_admission") ? 'Free admission' : '',
                 'vendor_payment_mode' => 'review',
                 'payment_window_days' => 7,
+                'status' => 'draft',
+                'applications_open' => true,
+                'tickets_on_sale' => $type ? ! empty(config("event_types.$type.ticket_types")) : false,
+                'amenities' => $type && config("event_types.$type.free_admission") ? ['free_parking'] : ['free_parking', 'indoor'],
+                'faq' => [],
             ]),
             'chooseType' => $type === null,
         ]);
@@ -37,10 +47,16 @@ class EventController extends Controller
     {
         $data = $this->validated($request);
         $template = config('event_types.'.$data['type']);
+        [$cover, $err] = Uploads::storeImage($request->file('cover'), 'events', 1800);
+        if ($err) {
+            return back()->withInput()->with('error', $err);
+        }
 
-        $event = DB::transaction(function () use ($data, $template) {
+        $event = DB::transaction(function () use ($data, $template, $cover) {
             $event = new Event($data);
             $event->slug = Event::uniqueSlug($data['title']);
+            $event->cover_path = $cover ?? '';
+            $this->locate($event, true);
             $event->save();
             foreach ($template['space_types'] as $i => $t) {
                 $event->tableTypes()->create($t + ['sort_order' => $i]);
@@ -75,20 +91,116 @@ class EventController extends Controller
             'ticketTypes' => Ticketing::availability($event, true),
             'orders' => $event->ticketOrders()->with('items')->where('status', 'paid')->latest()->limit(100)->get(),
             'stats' => CheckinController::stats($event),
-            'money' => $this->finances($event),
+            'money' => Finances::forEvent($event),
+            'unsentTables' => FloorPlans::unsentCount($event),
         ]);
     }
 
     public function edit(Event $event)
     {
+        $event->load('photos');
+
         return view('admin.event-form', ['event' => $event, 'chooseType' => false]);
     }
 
     public function update(Request $request, Event $event)
     {
-        $event->update($this->validated($request, $event));
+        $data = $this->validated($request, $event);
+        if ($request->hasFile('cover')) {
+            [$cover, $err] = Uploads::storeImage($request->file('cover'), 'events', 1800);
+            if ($err) {
+                return back()->withInput()->with('error', $err);
+            }
+            Uploads::delete($event->cover_path);
+            $event->cover_path = $cover;
+        } elseif ($request->boolean('remove_cover')) {
+            Uploads::delete($event->cover_path);
+            $event->cover_path = '';
+        }
+        $event->fill($data);
+        $this->locate($event, $event->isDirty(['venue_name', 'venue_address', 'town']));
+        $event->save();
 
         return redirect()->route('admin.events.show', $event)->with('status', 'Event saved.');
+    }
+
+    /**
+     * Sets map coordinates: a pin the organizer dropped wins; otherwise look
+     * the address up when it changed or there's no pin yet.
+     */
+    private function locate(Event $event, bool $addressChanged): void
+    {
+        $req = request();
+        if ($req->boolean('pin_moved') && is_numeric($req->input('lat')) && is_numeric($req->input('lng'))) {
+            $event->lat = round((float) $req->input('lat'), 6);
+            $event->lng = round((float) $req->input('lng'), 6);
+
+            return;
+        }
+        if (($addressChanged || $event->lat === null) && ($event->town || $event->venue_address)) {
+            $hit = Geocoder::locate($event->venue_name, $event->venue_address, $event->town);
+            if ($hit) {
+                [$event->lat, $event->lng] = $hit;
+            }
+        }
+    }
+
+    /**
+     * Copies an event for its next date: details, spaces, ticket types and
+     * floor plan layout. Vendors, tickets and photos stay with the original.
+     */
+    public function duplicate(Request $request, Event $event)
+    {
+        $data = $request->validate(['starts_on' => ['nullable', 'date'], 'title' => ['nullable', 'string', 'max:200']]);
+        $copy = DB::transaction(function () use ($event, $data) {
+            $copy = $event->replicate(['slug', 'checkin_token', 'status', 'notice', 'notice_text', 'copied_from_id']);
+            $copy->title = $data['title'] ?? $event->title;
+            $copy->starts_on = $data['starts_on'] ?? $event->starts_on?->copy()->addMonth();
+            $copy->slug = Event::uniqueSlug($copy->title.' '.($copy->starts_on?->format('M Y') ?? 'copy'));
+            $copy->status = 'draft';
+            $copy->notice = '';
+            $copy->notice_text = '';
+            $copy->copied_from_id = $event->id;
+            $copy->save();
+            foreach ($event->tableTypes as $t) {
+                $copy->tableTypes()->create($t->only(['name', 'description', 'price_cents', 'quantity', 'max_per_vendor', 'sort_order']));
+            }
+            foreach ($event->ticketTypes as $t) {
+                $copy->ticketTypes()->create($t->only(['name', 'description', 'price_cents', 'quantity', 'max_per_order', 'active', 'sort_order']));
+            }
+            FloorPlans::copy($event, $copy);
+
+            return $copy;
+        });
+
+        return redirect()->route('admin.events.edit', $copy)
+            ->with('status', "Copied “{$event->title}” as a draft. Check the date and details, then publish it.");
+    }
+
+    public function addPhotos(Request $request, Event $event)
+    {
+        $request->validate(['photos' => ['required', 'array', 'max:20'], 'photos.*' => ['file', 'max:12288']]);
+        $order = (int) $event->photos()->max('sort_order');
+        $n = 0;
+        foreach ($request->file('photos') as $file) {
+            [$path, $err] = Uploads::storeImage($file, 'events', 1800);
+            if ($err) {
+                return back()->with('error', $err);
+            }
+            $event->photos()->create(['path' => $path, 'sort_order' => ++$order]);
+            $n++;
+        }
+
+        return redirect(route('admin.events.edit', $event).'#photos')->with('status', "Added {$n} ".Str::plural('photo', $n).'.');
+    }
+
+    public function deletePhoto(Event $event, EventPhoto $photo)
+    {
+        abort_unless($photo->event_id === $event->id, 404);
+        Uploads::delete($photo->path);
+        $photo->delete();
+
+        return redirect(route('admin.events.edit', $event).'#photos')->with('status', 'Photo removed.');
     }
 
     public function addTableType(Request $request, Event $event)
@@ -189,33 +301,6 @@ class EventController extends Controller
         }, $filename, ['Content-Type' => 'text/csv']);
     }
 
-    /** Money in for one event, split by source, net of platform fees. */
-    private function finances(Event $event): array
-    {
-        $apps = $event->applications()->whereNotNull('paid_at')->get();
-        $online = $apps->where('payment_method', 'online');
-        $byHand = $apps->whereIn('payment_method', ['cash', 'other']);
-        $orders = $event->ticketOrders()->where('status', 'paid')->where('payment_method', 'online')->get();
-        $door = $event->doorSales()->where('kind', 'sale')->get();
-
-        $m = [
-            'tables_online' => (int) $online->sum('amount_cents'),
-            'tables_fee' => (int) $online->sum('platform_fee_cents'),
-            'tables_refunded' => (int) $apps->sum('refunded_cents'),
-            'tables_cash' => (int) $byHand->sum('amount_cents'),
-            'tickets_online' => (int) $orders->sum('subtotal_cents'),
-            'ticket_fees_paid_by_buyers' => (int) $orders->sum('fee_cents'),
-            'door_cash' => (int) $door->where('method', 'cash')->sum('amount_cents'),
-            'door_card' => (int) $door->where('method', 'card')->sum('amount_cents'),
-            'door_other' => (int) $door->where('method', 'other')->sum('amount_cents'),
-        ];
-        $m['payout'] = $m['tables_online'] - $m['tables_fee'] - $m['tables_refunded'] + $m['tickets_online'];
-        $m['collected_in_person'] = $m['tables_cash'] + $m['door_cash'] + $m['door_card'] + $m['door_other'];
-        $m['total'] = $m['payout'] + $m['collected_in_person'];
-
-        return $m;
-    }
-
     private function validated(Request $request, ?Event $event = null): array
     {
         $data = $request->validate([
@@ -237,8 +322,21 @@ class EventController extends Controller
             'vendor_payment_mode' => ['required', Rule::in(array_keys(Event::PAYMENT_MODES))],
             'payment_window_days' => ['required', 'integer', 'min:1', 'max:60'],
             'ticket_capacity' => ['nullable', 'integer', 'min:1'],
+            'parking_info' => ['nullable', 'string', 'max:500'],
+            'amenities' => ['nullable', 'array'],
+            'amenities.*' => [Rule::in(array_keys(config('platform.amenities')))],
+            'faq' => ['nullable', 'array', 'max:12'],
+            'faq.*.q' => ['nullable', 'string', 'max:200'],
+            'faq.*.a' => ['nullable', 'string', 'max:2000'],
+            'cover' => ['nullable', 'file', 'max:12288'],
+            'lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'lng' => ['nullable', 'numeric', 'between:-180,180'],
         ]);
-        foreach (['hours', 'vendor_setup', 'venue_name', 'venue_address', 'town', 'admission_note', 'categories', 'notice', 'notice_text'] as $k) {
+        unset($data['cover'], $data['lat'], $data['lng']);
+        $data['amenities'] = array_values($data['amenities'] ?? []);
+        $data['faq'] = array_values(array_filter(array_map(fn ($f) => ['q' => trim($f['q'] ?? ''), 'a' => trim($f['a'] ?? '')], $data['faq'] ?? []),
+            fn ($f) => $f['q'] !== '' && $f['a'] !== ''));
+        foreach (['hours', 'vendor_setup', 'venue_name', 'venue_address', 'town', 'admission_note', 'categories', 'notice', 'notice_text', 'parking_info'] as $k) {
             $data[$k] = $data[$k] ?? '';
         }
         $data['applications_open'] = $request->boolean('applications_open');

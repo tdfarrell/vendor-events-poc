@@ -11,14 +11,17 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $events = Event::withCount([
+        $events = Event::with('organizer')->withCount([
             'applications as confirmed_count' => fn ($q) => $q->where('status', 'paid'),
             'applications as review_count' => fn ($q) => $q->where('status', 'pending'),
         ])->orderByRaw("status = 'archived'")->orderByRaw('starts_on is null')->orderBy('starts_on')->get();
+        $upcoming = $events->filter(fn ($e) => $e->status !== 'archived' && (! $e->starts_on || ! $e->starts_on->isPast() || $e->starts_on->isToday()));
+        $past = $events->diff($upcoming);
+        $money = \App\Services\Finances::forOrganizer(today()->startOfYear()->toDateString(), today()->endOfYear()->toDateString())['totals'];
 
         $needsReview = VendorApplication::with('event')->where('status', 'pending')->latest()->limit(10)->get();
 
-        return view('admin.dashboard', compact('events', 'needsReview'));
+        return view('admin.dashboard', compact('upcoming', 'past', 'needsReview', 'money'));
     }
 
     public function order(TicketOrder $order)
