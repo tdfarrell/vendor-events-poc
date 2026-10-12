@@ -18,7 +18,9 @@ In Bluehost's cPanel, under **Domains**:
 3. Add three subdomains: **nutmeg**, **quarryhill** and **valleyflea** on echcards.com. Set each one's document root to **the same web folder** as echcards.com, not a new folder.
 4. In **MultiPHP Manager**, set echcards.com and the three subdomains to **PHP 8.3 or newer** (8.5 is fine).
 
-Every future organizer gets one more subdomain added the same way.
+5. **Add DNS records for the subdomains.** cPanel creates the folders but not the DNS. In the Bluehost Portal, open **Domains → echcards.com → DNS** and add an **A** record for each subdomain (`nutmeg`, `quarryhill`, `valleyflea`) pointing to the same IP address as echcards.com. Without these, AutoSSL fails with "does not resolve to any IP addresses".
+
+Every future organizer gets one more subdomain and one more A record, added the same way.
 
 ## 2. Upload and unpack (SSH)
 
@@ -44,7 +46,9 @@ php -m | grep -i sqlite     # should list pdo_sqlite and sqlite3
 
 ## 3. Turn on SSL
 
-In cPanel, under **SSL/TLS Status** (or Bluehost's **Security → SSL**), make sure echcards.com and each of the three subdomains has a certificate. New subdomains can take a little while to get one.
+In cPanel, under **SSL/TLS Status**, tick echcards.com and the three subdomains and click **Run AutoSSL**. Click **Exclude from AutoSSL** on the `www.` versions of the subdomains; nobody uses them and they have no DNS.
+
+If the site works on your phone (on cellular) but not your computer, your computer is still holding an old DNS answer. It clears within about an hour, or run `ipconfig /flushdns` on Windows.
 
 Sign-in only works over **https**, so wait for the certificates before testing logins.
 
