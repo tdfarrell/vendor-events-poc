@@ -93,6 +93,12 @@ class Event extends Model
         return $this->lat !== null && $this->lng !== null;
     }
 
+    /** The listed venue this event is held at, if any (venues aren't organizer-scoped). */
+    public function venue(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Venue::class);
+    }
+
     public function fullAddress(): string
     {
         return collect([$this->venue_address, $this->town, $this->town ? config('platform.state') : null])->filter()->join(', ');

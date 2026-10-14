@@ -7,10 +7,12 @@ use App\Models\Event;
 use App\Models\Listing;
 use App\Models\ListingClaim;
 use App\Models\Organizer;
+use App\Models\Venue;
+use App\Models\VenueClaim;
 use App\Services\Notifier;
 use App\Tenancy\Tenancy;
 
-/** Organizers, directory listings and claims, across the whole platform. */
+/** Organizers, directory listings, venues and claims, across the whole platform. */
 class DashboardController extends Controller
 {
     public function index()
@@ -20,7 +22,10 @@ class DashboardController extends Controller
         $claims = ListingClaim::with('listing')->where('status', 'new')->latest()->get();
         $listings = Listing::orderByRaw("status = 'listed' desc")->orderBy('starts_on')->get();
 
-        return view('platform.dashboard', compact('organizers', 'eventCounts', 'claims', 'listings'));
+        $venueClaims = VenueClaim::with('venue')->where('status', 'new')->latest()->get();
+        $venues = Venue::with('organizer')->withCount('inquiries')->orderByRaw('organizer_id is not null')->orderBy('name')->get();
+
+        return view('platform.dashboard', compact('organizers', 'eventCounts', 'claims', 'listings', 'venueClaims', 'venues'));
     }
 
     public function activate(Organizer $org)

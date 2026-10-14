@@ -2,7 +2,7 @@
 @section('page', 'Email log')
 
 @php
-    $kinds = ['' => 'All', 'booking' => 'Bookings', 'tickets' => 'Tickets', 'tables' => 'Table numbers', 'message' => 'Your messages', 'organizer' => 'Alerts to you'];
+    $kinds = ['' => 'All', 'booking' => 'Bookings', 'tickets' => 'Tickets', 'tables' => 'Table numbers', 'message' => 'Your messages', 'inquiry' => 'Rental requests', 'inquiry_reply' => 'Rental replies', 'organizer' => 'Alerts to you'];
 @endphp
 
 @section('content')

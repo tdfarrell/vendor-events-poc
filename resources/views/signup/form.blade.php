@@ -4,8 +4,13 @@
 @section('before')
 <section class="dir-hero" style="padding-bottom:64px">
     <div class="wrap">
-        <h1 style="max-width:18ch">Run your show without the spreadsheet</h1>
-        <p class="lead">Vendor bookings, a floor plan, tickets and a door app that counts cash. Free for organizers; {{ config('platform.name') }} keeps a small fee on online payments only.</p>
+        @if (request()->boolean('venue'))
+            <h1 style="max-width:18ch">Rent out your hall without the phone tag</h1>
+            <p class="lead">List your rooms with photos, capacity and prices, and get rental requests by email. Free for venues. Your account can run your own events too.</p>
+        @else
+            <h1 style="max-width:18ch">Run your show without the spreadsheet</h1>
+            <p class="lead">Vendor bookings, a floor plan, tickets and a door app that counts cash. Free for organizers; {{ config('platform.name') }} keeps a small fee on online payments only.</p>
+        @endif
     </div>
 </section>
 @endsection
@@ -14,9 +19,9 @@
 <div class="cols">
     <form method="post" action="{{ route('signup') }}" class="card lift">
         @csrf
-        <h2>Set up your organizer account</h2>
+        <h2>{{ request()->boolean('venue') ? 'Set up your venue account' : 'Set up your organizer account' }}</h2>
         <fieldset>
-            <legend>Your events</legend>
+            <legend>{{ request()->boolean('venue') ? 'Your venue or group' : 'Your events' }}</legend>
             <div class="field"><label for="name">Organizer or group name</label><input id="name" type="text" name="name" required value="{{ old('name') }}" placeholder="Shoreline Craft Collective"></div>
             <div class="field">
                 <label for="slug">Your web address</label>

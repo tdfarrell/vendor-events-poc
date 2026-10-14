@@ -312,6 +312,7 @@ class EventController extends Controller
             'venue_name' => ['nullable', 'string', 'max:200'],
             'venue_address' => ['nullable', 'string', 'max:255'],
             'town' => ['nullable', 'string', 'max:100'],
+            'venue_id' => ['nullable', 'integer', Rule::exists('venues', 'id')->whereIn('status', ['listed', 'active'])],
             'description' => ['nullable', 'string', 'max:5000'],
             'admission_note' => ['nullable', 'string', 'max:200'],
             'categories' => ['nullable', 'string', 'max:500'],
@@ -338,6 +339,15 @@ class EventController extends Controller
             fn ($f) => $f['q'] !== '' && $f['a'] !== ''));
         foreach (['hours', 'vendor_setup', 'venue_name', 'venue_address', 'town', 'admission_note', 'categories', 'notice', 'notice_text', 'parking_info'] as $k) {
             $data[$k] = $data[$k] ?? '';
+        }
+        // Held at a listed venue: fill in whatever address fields were left blank.
+        $data['venue_id'] = $data['venue_id'] ?? null;
+        if ($data['venue_id'] && $venue = \App\Models\Venue::find($data['venue_id'])) {
+            foreach (['venue_name' => 'name', 'venue_address' => 'address', 'town' => 'town', 'parking_info' => 'parking_info'] as $mine => $theirs) {
+                if ($data[$mine] === '') {
+                    $data[$mine] = (string) $venue->{$theirs};
+                }
+            }
         }
         $data['applications_open'] = $request->boolean('applications_open');
         $data['tickets_on_sale'] = $request->boolean('tickets_on_sale');

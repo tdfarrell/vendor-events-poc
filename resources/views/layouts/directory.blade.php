@@ -6,6 +6,7 @@
         <a href="{{ route('directory.events') }}" aria-label="{{ config('platform.name') }} home"><x-logo /></a>
         <nav>
             <a href="{{ route('directory.events') }}" @class(['on' => request()->routeIs('directory.events')])>Events</a>
+            <a href="{{ route('venues.index') }}" @class(['on' => request()->routeIs('venues.*')])>Venues</a>
             <a href="{{ route('directory.vendors') }}" @class(['on' => request()->routeIs('directory.vendor*')])>Vendors</a>
             @if ($signedInVendor)
                 <a href="{{ route('vendor.account') }}" @class(['on' => request()->routeIs('vendor.*')])>My vendor account</a>

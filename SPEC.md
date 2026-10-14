@@ -89,3 +89,22 @@ New organizer-scoped tables: `event_photos`, `floor_plans`, `email_log`. Platfor
 Organizer sign-up creates the organizer as **pending**: on shared hosting each subdomain still needs a cPanel subdomain, a DNS record and a certificate, so someone marks it live in platform admin after setting those up.
 
 Still deferred: real payments (Stripe Connect), sending email (the demo logs it), custom domains, raffles, and vendor document uploads.
+
+## Venues
+
+Halls, posts, churches, schools and clubs list rooms to rent and take rental requests. Stage 1 of three: listings and request forms. Availability calendars and online rentals with deposits come later.
+
+| Table | Owned by | What |
+| --- | --- | --- |
+| `venues` | an organizer, or no one (an unclaimed listing) | Name, kind, address, about, house rules, parking, the email requests go to, cover photo, status (listed, active, hidden) |
+| `venue_rooms` | its venue | Seated and standing capacity, price range and unit, amenities |
+| `venue_inquiries` | its venue | Occasion, date (or flexible), time, guests, room, budget, message, status (new, replied, booked, declined, closed) |
+| `venue_claims` | its venue | "I manage this venue" requests for platform admin |
+
+`events.venue_id` links an event to a listed venue so it shows on the venue's page.
+
+**Why venues aren't organizer-scoped.** Unclaimed venues belong to no organizer, so `venues` can't use the `BelongsToOrganizer` scope. Instead every admin lookup goes through `Venue::ownedByCurrent()`, which fails closed like the scope does (no organizer set means no rows), and rooms and requests are reached only through a venue that passes it. `VenueTest` tries to read and change another organizer's venue, rooms and requests, and an unclaimed venue's requests, and all of it must 404.
+
+**Requests.** A request emails the venue (in the organizer's name, replies going to the renter) and sends the renter a copy. For an unclaimed venue the email goes to its public address with a "claim your free listing" link, which is how venues find out about the platform. Replies from admin go to the renter and land in the organizer's email log.
+
+**Claims.** Platform admin approves a claim and either hands the venue to an existing organizer or emails a sign-up link. A venue account is an ordinary organizer account, so it can run its own events too.

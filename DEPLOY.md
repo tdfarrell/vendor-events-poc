@@ -1,5 +1,14 @@
 # Putting the demo on Bluehost (echcards.com)
 
+## Updating to the venues version
+
+Same as round two: replace everything except `uploads`, because the demo database changed again.
+
+1. In File Manager, in echcards.com's root folder, delete `vendor-events-app`, `index.php`, `css`, `js`, `fonts`, `vendor` and `.htaccess` (turn on hidden files). Keep `uploads`.
+2. Upload `echcards-site.zip`, extract it into the same folder, then delete the zip.
+3. Add one more subdomain the usual way, **riverside** (the demo venue account): a cPanel subdomain pointing at the same folder, an **A** record for `riverside` in Bluehost DNS, then AutoSSL.
+4. Open https://echcards.com/venues. The venue admin is at https://riverside.echcards.com/admin (`owner@riverside.test` / `password`).
+
 ## Updating to round two (Bonfire)
 
 The round-two zip replaces everything, including the demo database (its structure changed). In File Manager, in echcards.com's root folder:
@@ -77,6 +86,8 @@ Sign-in only works over **https**, so wait for the certificates before testing l
 | https://hillsmarket.echcards.com | Litchfield Hills Market (fictional) |
 | https://brasscity.echcards.com | Brass City Comic & Toy (fictional) |
 | https://echcards.com/platform | Platform admin (`admin@echcards.com` / `password`) |
+| https://echcards.com/venues | Venues to rent |
+| https://riverside.echcards.com/admin | Venue admin with rental requests (`owner@riverside.test` / `password`) |
 
 Each organizer's sign-in page shows its demo login. Vendors sign in at https://echcards.com/vendor/login; the sign-in link shows on screen.
 

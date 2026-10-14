@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Listing;
 use App\Models\Vendor;
+use App\Models\Venue;
 use App\Models\VendorApplication;
 use App\Tenancy\Tenancy;
 use Illuminate\Database\Eloquent\Builder;
@@ -97,7 +98,9 @@ class DirectoryController extends Controller
         $towns = Tenancy::acrossOrganizers(fn () => Event::published()->upcoming()->where('town', '<>', '')->reorder()->distinct()->pluck('town'))
             ->concat(Listing::visible()->where('town', '<>', '')->distinct()->pluck('town'))->unique()->sort()->values();
 
-        return view('directory.events', compact('items', 'pins', 'counts', 'listingCounts', 'weekend', 'spotlight', 'towns', 'f', 'filtered', 'faces'));
+        $venues = $filtered ? collect() : Venue::public()->with('rooms')->orderByRaw('organizer_id is null')->orderBy('name')->limit(4)->get();
+
+        return view('directory.events', compact('items', 'pins', 'counts', 'listingCounts', 'weekend', 'spotlight', 'towns', 'f', 'filtered', 'faces', 'venues'));
     }
 
     private function applyCommon(Builder $q, array $f, ?Carbon $from, ?Carbon $to, bool $isListing = false): Builder

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Mail;
 
 /**
  * Sends plain emails in the organizer's name, with replies going to the
- * organizer, and records each one in the email log the organizer can see.
+ * organizer (or to $replyTo, e.g. a renter), and records each one in the email log the organizer can see.
  */
 class Notifier
 {
@@ -19,7 +19,7 @@ class Notifier
      * @param  array{label:string,url:string}|null  $button
      */
     public static function send(?Organizer $organizer, string $to, string $subject, array $paragraphs, ?array $button = null,
-        string $kind = '', ?int $eventId = null): void
+        string $kind = '', ?int $eventId = null, ?string $replyTo = null): void
     {
         $body = implode("\n\n", $paragraphs);
         if ($button) {
@@ -30,9 +30,11 @@ class Notifier
 
         $status = 'sent';
         try {
-            Mail::raw($body, function ($m) use ($to, $subject, $organizer, $fromName) {
+            Mail::raw($body, function ($m) use ($to, $subject, $organizer, $fromName, $replyTo) {
                 $m->to($to)->subject($subject)->from(config('mail.from.address'), $fromName);
-                if ($organizer?->contact_email) {
+                if ($replyTo) {
+                    $m->replyTo($replyTo);
+                } elseif ($organizer?->contact_email) {
                     $m->replyTo($organizer->contact_email, $fromName);
                 }
             });

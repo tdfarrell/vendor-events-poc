@@ -67,6 +67,13 @@
 
                 <fieldset id="location">
                     <legend>Location</legend>
+                    @php $venueChoices = \App\Models\Venue::whereIn('status', ['listed', 'active'])->orderBy('town')->orderBy('name')->get(['id', 'name', 'town']); @endphp
+                    @if ($venueChoices->isNotEmpty())
+                        <div class="field"><label for="venue_id">Held at a listed venue? <span class="hint">links your event to the venue's page; blank address fields are filled from it</span></label>
+                            <select id="venue_id" name="venue_id"><option value="">No, or it isn't listed</option>
+                                @foreach ($venueChoices as $vc)<option value="{{ $vc->id }}" @selected((string) old('venue_id', $event->venue_id) === (string) $vc->id)>{{ $vc->name }} · {{ $vc->town }}</option>@endforeach
+                            </select></div>
+                    @endif
                     <div class="field"><label>Venue</label><input type="text" name="venue_name" value="{{ old('venue_name', $event->venue_name) }}" placeholder="Watertown Elks Lodge"></div>
                     <div class="fields-2">
                         <div class="field"><label>Street address</label><input type="text" name="venue_address" value="{{ old('venue_address', $event->venue_address) }}"></div>

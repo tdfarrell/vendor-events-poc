@@ -14,7 +14,7 @@
     <link rel="preload" href="{{ asset('fonts/bricolage-grotesque.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ asset('fonts/figtree.woff2') }}" as="font" type="font/woff2" crossorigin>
     @yield('meta')
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=3">
     @yield('head')
 </head>
 <body class="@yield('body-class')" style="--brand: {{ $brand }}; --brand-ink: {{ $brandInk }};">

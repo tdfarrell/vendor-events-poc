@@ -12,6 +12,7 @@
         <nav>
             <a href="{{ route('admin.dashboard') }}" @class(['on' => request()->routeIs('admin.dashboard', 'admin.events.*', 'admin.applications.*', 'admin.orders.*', 'admin.floor-plan*', 'admin.messages*')])>Events</a>
             <a href="{{ route('admin.finances') }}" @class(['on' => request()->routeIs('admin.finances*')])>Financials</a>
+            <a href="{{ route('admin.venues.index') }}" @class(['on' => request()->routeIs('admin.venues.*', 'admin.rooms.*', 'admin.inquiries*')])>Venue{{ ($newInquiries ?? 0) > 0 ? ' ('.$newInquiries.')' : '' }}</a>
             <a href="{{ route('admin.emails') }}" @class(['on' => request()->routeIs('admin.emails')])>Email log</a>
             <a href="{{ route('admin.settings') }}" @class(['on' => request()->routeIs('admin.settings')])>Settings</a>
             <a href="{{ route('site.home') }}" target="_blank">View site ↗</a>

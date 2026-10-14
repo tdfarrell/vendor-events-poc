@@ -12,7 +12,7 @@ $domain = config('platform.domain');
 |--------------------------------------------------------------------------
 | Directory: the root domain
 |--------------------------------------------------------------------------
-| Every published event, every off-platform listing and every public vendor,
+| Every published event, every off-platform listing, every public venue and vendor,
 | plus vendor accounts, organizer sign-up and the platform's own admin.
 */
 Route::domain($domain)->group(function () {
@@ -21,6 +21,12 @@ Route::domain($domain)->group(function () {
     Route::get('/vendors/{slug}', [Directory\DirectoryController::class, 'vendor'])->name('directory.vendor');
     Route::get('/listings/{listing}', [Directory\ListingController::class, 'show'])->name('listings.show');
     Route::post('/listings/{listing}/claim', [Directory\ListingController::class, 'claim'])->name('listings.claim')->middleware('throttle:5,10');
+
+    // Venues: rooms to rent, rental requests and claims
+    Route::get('/venues', [Directory\VenueController::class, 'index'])->name('venues.index');
+    Route::get('/venues/{slug}', [Directory\VenueController::class, 'show'])->name('venues.show');
+    Route::post('/venues/{slug}/ask', [Directory\VenueController::class, 'inquire'])->name('venues.inquire')->middleware('throttle:6,10');
+    Route::post('/venues/{slug}/claim', [Directory\VenueController::class, 'claim'])->name('venues.claim')->middleware('throttle:5,10');
 
     Route::get('/vendor/login', [Directory\VendorAccountController::class, 'loginForm'])->name('vendor.login');
     Route::post('/vendor/login', [Directory\VendorAccountController::class, 'sendLink'])->middleware('throttle:6,10');
@@ -49,6 +55,11 @@ Route::domain($domain)->group(function () {
         Route::get('/listings/{listing}/edit', [Platform\ListingController::class, 'edit'])->name('listings.edit');
         Route::put('/listings/{listing}', [Platform\ListingController::class, 'update'])->name('listings.update');
         Route::post('/claims/{claim}', [Platform\ListingController::class, 'decideClaim'])->name('claims.decide');
+        Route::get('/venues/create', [Platform\VenueController::class, 'create'])->name('venues.create');
+        Route::post('/venues', [Platform\VenueController::class, 'store'])->name('venues.store');
+        Route::get('/venues/{venue}/edit', [Platform\VenueController::class, 'edit'])->name('venues.edit');
+        Route::put('/venues/{venue}', [Platform\VenueController::class, 'update'])->name('venues.update');
+        Route::post('/venue-claims/{claim}', [Platform\VenueController::class, 'decideClaim'])->name('venue-claims.decide');
     });
 });
 
@@ -137,6 +148,19 @@ Route::domain('{organizer}.'.$domain)->group(function () {
         Route::get('/financials.csv', [Admin\FinanceController::class, 'csv'])->name('finances.csv');
 
         Route::get('/emails', [Admin\MessageController::class, 'log'])->name('emails');
+
+        // Venue: rooms to rent and rental requests
+        Route::get('/venue', [Admin\VenueController::class, 'index'])->name('venues.index');
+        Route::get('/venues/create', [Admin\VenueController::class, 'create'])->name('venues.create');
+        Route::post('/venues', [Admin\VenueController::class, 'store'])->name('venues.store');
+        Route::get('/venues/{venue}/edit', [Admin\VenueController::class, 'edit'])->name('venues.edit')->whereNumber('venue');
+        Route::put('/venues/{venue}', [Admin\VenueController::class, 'update'])->name('venues.update')->whereNumber('venue');
+        Route::post('/venues/{venue}/rooms', [Admin\VenueController::class, 'addRoom'])->name('venues.rooms')->whereNumber('venue');
+        Route::put('/rooms/{room}', [Admin\VenueController::class, 'updateRoom'])->name('rooms.update')->whereNumber('room');
+        Route::post('/rooms/{room}/delete', [Admin\VenueController::class, 'deleteRoom'])->name('rooms.delete')->whereNumber('room');
+        Route::get('/inquiries', [Admin\VenueController::class, 'inquiries'])->name('inquiries');
+        Route::get('/inquiries/{inquiry}', [Admin\VenueController::class, 'inquiry'])->name('inquiries.show')->whereNumber('inquiry');
+        Route::post('/inquiries/{inquiry}', [Admin\VenueController::class, 'act'])->name('inquiries.act')->whereNumber('inquiry');
 
         Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings');
         Route::put('/settings', [Admin\SettingsController::class, 'update'])->middleware('staff:owner');

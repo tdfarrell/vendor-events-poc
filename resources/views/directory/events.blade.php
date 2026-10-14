@@ -116,6 +116,17 @@
     </section>
 @endif
 
+@if ($venues->isNotEmpty())
+    <section class="section">
+        <div class="section-head"><h2>Rooms to rent for your own party</h2><a href="{{ route('venues.index') }}">All venues</a></div>
+        <div class="grid grid-2">
+            @foreach ($venues as $venue)
+                @include('partials.venue-row', ['venue' => $venue])
+            @endforeach
+        </div>
+    </section>
+@endif
+
 <section class="section">
     <div class="cta-band">
         <div>

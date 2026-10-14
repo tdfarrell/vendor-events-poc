@@ -23,6 +23,12 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        // New rental requests, for the admin's Venue tab.
+        View::composer('layouts.admin', function ($view) {
+            $view->with('newInquiries', \App\Models\VenueInquiry::where('status', 'new')
+                ->whereHas('venue', fn ($q) => $q->ownedByCurrent())->count());
+        });
+
         View::composer('*', function ($view) {
             // Look the vendor up once per request, not once per view.
             $attrs = request()->attributes;

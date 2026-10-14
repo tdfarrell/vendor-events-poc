@@ -10,6 +10,8 @@ use App\Models\Organizer;
 use App\Models\PlatformAdmin;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Models\Venue;
+use App\Models\VenueInquiry;
 use App\Services\Bookings;
 use App\Services\Ticketing;
 use App\Tenancy\Tenancy;
@@ -20,12 +22,13 @@ use Illuminate\Support\Facades\Mail;
 /**
  * Demo data: five organizers across every kind of event, a shared pool of
  * vendors who book with more than one of them, applications in every status,
- * a laid-out floor plan, and a few off-platform directory listings.
+ * a laid-out floor plan, a few off-platform directory listings, and venues:
+ * one run by its own account with rental requests, the rest unclaimed.
  * Everything except Nutmeg Card Co. is made up.
  *
  * Organizer logins (password: "password"), each on its own subdomain:
  *   owner@nutmeg.test, owner@quarryhill.test, owner@valleyflea.test,
- *   owner@hillsmarket.test, owner@brasscity.test
+ *   owner@hillsmarket.test, owner@brasscity.test, owner@riverside.test (a venue)
  * Platform admin: admin@{APP_DOMAIN} / password at {APP_DOMAIN}/platform
  */
 class DatabaseSeeder extends Seeder
@@ -209,6 +212,9 @@ class DatabaseSeeder extends Seeder
             $this->paid($bookings, $show, $t, $vendors['tcgtrader'], 1, 'online', '4');
         });
 
+        // ---------- Venues ----------
+        $this->venues($vendors, $bookings, $today);
+
         // ---------- Off-platform listings (sample) ----------
         foreach ([
             ['charity_event', 'St. Anne’s Holiday Bazaar', '2026-11-21', '9 AM – 2 PM', 'St. Anne Parish Hall', 'Woodbury', 'St. Anne Parish'],
@@ -225,6 +231,103 @@ class DatabaseSeeder extends Seeder
         }
 
         Tenancy::forget();
+    }
+
+    /** A veterans hall with its own account and rental requests, plus unclaimed venues across the map. */
+    private function venues(array $vendors, Bookings $bookings, Carbon $today): void
+    {
+        $river = $this->organizer('Riverside Veterans Hall', 'riverside', '#2B4C7E', 'Our hall, your party', 'Torrington',
+            'A volunteer-run veterans hall on the Naugatuck River. We rent our hall, canteen and pavilion to the community, and host a holiday fair every year.');
+        [$lat, $lng] = self::TOWNS['Torrington'];
+        $hall = new Venue([
+            'name' => 'Riverside Veterans Hall', 'kind' => 'veterans_hall', 'address' => '12 River Rd', 'town' => 'Torrington',
+            'about' => "A big, bright hall with a full kitchen and a bar run by our members. Birthday parties, showers, anniversaries, repasts and fundraisers are our bread and butter.\n\nTables and chairs for 180 are included, and our members can run the bar for you.",
+            'rules' => "Alcohol is served by our bar only; no outside alcohol.\nOutside caterers are welcome; the kitchen is yours for the day.\n\$150 refundable deposit holds your date.\nEvents end by 11 PM; cleanup by midnight.\nNonprofits and veterans' families get 20% off.",
+            'parking_info' => 'Free lot for 80 cars, plus street parking on River Rd.',
+            'contact_email' => 'hello@riverside.test', 'phone' => '860-555-0142', 'status' => 'active',
+        ]);
+        $hall->organizer_id = $river->id;
+        $hall->slug = Venue::uniqueSlug('Riverside Veterans Hall', 'Torrington');
+        [$hall->lat, $hall->lng] = [$lat + 0.006, $lng - 0.004];
+        $hall->save();
+        $main = $hall->rooms()->create(['name' => 'Main hall', 'seated' => 180, 'standing' => 250, 'price_from' => 450, 'price_to' => 650, 'price_unit' => 'event',
+            'description' => 'Hardwood dance floor, stage with sound system, and a pass-through to the kitchen. Round tables seat 10.',
+            'amenities' => ['kitchen', 'bar', 'tables_chairs', 'stage', 'dance_floor', 'av', 'parking', 'accessible'], 'sort_order' => 1]);
+        $canteen = $hall->rooms()->create(['name' => 'Canteen room', 'seated' => 50, 'standing' => 70, 'price_from' => 175, 'price_unit' => 'event',
+            'description' => 'A cozy room for showers, small birthdays and meetings, right beside the kitchen.',
+            'amenities' => ['kitchen', 'tables_chairs', 'parking', 'accessible', 'wifi'], 'sort_order' => 2]);
+        $hall->rooms()->create(['name' => 'Riverside pavilion', 'seated' => 80, 'standing' => 120, 'price_from' => 250, 'price_unit' => 'day',
+            'description' => 'Covered pavilion on the lawn with picnic tables and a grill. May to October.',
+            'amenities' => ['outdoor_space', 'tables_chairs', 'parking'], 'sort_order' => 3]);
+
+        Tenancy::as($river, function () use ($hall, $main, $canteen, $vendors, $bookings, $today) {
+            $this->owner('Ray', 'owner@riverside.test');
+            $fair = $this->event('craft_fair', [
+                'title' => 'Riverside Holiday Vendor Fair', 'starts_on' => '2026-11-28', 'hours' => '9 AM – 3 PM', 'vendor_setup' => '7:30 – 8:45 AM',
+                'venue_name' => 'Riverside Veterans Hall', 'venue_address' => '12 River Rd', 'town' => 'Torrington', 'venue_id' => $hall->id,
+                'description' => "Forty local crafters and small businesses in our main hall, with a pancake breakfast from the auxiliary until 11. Proceeds support the post's veterans fund.",
+                'admission_note' => 'Free admission', 'vendor_payment_mode' => 'instant', 'amenities' => ['free_parking', 'food', 'indoor', 'accessible'],
+            ]);
+            $this->paid($bookings, $fair, $fair->tableTypes()->first(), $vendors['birchwick'], 1, 'online', 'B1');
+            $this->paid($bookings, $fair, $fair->tableTypes()->first(), $vendors['saltmarsh'], 1, 'online', 'B5');
+
+            foreach ([
+                ['Maria Lopez', 'maria@example.com', 'birthday', 24, 120, 'Main hall', '6 – 11 PM', '', "My dad's 70th! Can we bring our own caterer and do you have a projector for a slideshow?", 'new', 2],
+                ['Kevin & Jo Brandt', 'kbrandt@example.com', 'anniversary', 52, 90, 'Main hall', '5 – 10 PM', 'about $600', 'Our parents\' 50th. Is the bar open-bar or cash, and what does that cost?', 'replied', 6],
+                ['Tasha Green', 'tasha@example.com', 'shower', 38, 40, 'Canteen room', '1 – 4 PM', '', 'Baby shower for my sister. We\'d need the kitchen for a fridge and warming trays.', 'booked', 9],
+                ['St. Peter Youth Group', 'youth@example.com', 'fundraiser', 70, 150, null, 'Afternoon', '', 'Spaghetti dinner fundraiser. Do you offer a nonprofit rate?', 'new', 1],
+            ] as [$name, $email, $kind, $days, $guests, $room, $time, $budget, $msg, $status, $ago]) {
+                $i = new VenueInquiry([
+                    'name' => $name, 'email' => $email, 'event_kind' => $kind, 'event_date' => $today->copy()->addDays($days)->toDateString(),
+                    'guests' => $guests, 'time_range' => $time, 'budget' => $budget, 'message' => $msg,
+                    'venue_room_id' => $room === 'Main hall' ? $main->id : ($room === 'Canteen room' ? $canteen->id : null),
+                ]);
+                $i->venue_id = $hall->id;
+                $i->status = $status;
+                $i->replied_at = $status === 'new' ? null : now()->subDays($ago - 1);
+                $i->created_at = now()->subDays($ago)->subHours(3);
+                $i->save();
+            }
+        });
+
+        // Unclaimed venues: listed by the platform; requests go to their public email with a claim link.
+        foreach ([
+            ['Maple Street Community Center', 'community_center', 'Watertown', 'hall@maplestreet.example',
+                'The town community center with a gym-sized hall and two meeting rooms. Popular for kids\' birthdays and club meetings.',
+                [['Gym hall', 150, 220, 300, ['tables_chairs', 'stage', 'parking', 'accessible']], ['Meeting room A', 30, 40, 60, ['tables_chairs', 'av', 'wifi', 'accessible']]]],
+            ['Grace Fellowship Hall', 'church_hall', 'Naugatuck', 'office@gracefellowship.example',
+                'Fellowship hall in the church basement with a commercial kitchen. Repasts, showers and community suppers.',
+                [['Fellowship hall', 120, 150, 250, ['kitchen', 'tables_chairs', 'parking', 'accessible']]]],
+            ['Harborview Social Club', 'social_club', 'Waterbury', 'rentals@harborview.example',
+                'A members\' club with a function room and full bar, open to the public for private parties.',
+                [['Function room', 100, 140, 400, ['bar', 'kitchen', 'tables_chairs', 'dance_floor', 'av', 'parking']]]],
+            ['Oak Hill Elementary School', 'school', 'Cheshire', 'facilities@oakhill.example',
+                'Cafeteria and gym available evenings and weekends through the district facilities office. Great for PTO fairs.',
+                [['Cafeteria', 200, 250, 150, ['tables_chairs', 'parking', 'accessible']], ['Gymnasium', null, 400, 200, ['parking', 'accessible']]]],
+            ['The Granary at Whitfield Farm', 'wedding_venue', 'Litchfield', 'events@whitfieldfarm.example',
+                'A restored 1890s granary barn with string lights and a meadow for ceremonies.',
+                [['Barn', 160, 200, 3500, ['bar', 'dance_floor', 'outdoor_space', 'tables_chairs', 'parking']]]],
+            ['Pomperaug Grange Hall', 'community_center', 'Woodbury', 'grange@pomperaug.example',
+                'A classic 1920s grange hall with a stage and kitchen, rented to the community for parties, dances and fairs.',
+                [['Hall', 90, 130, 200, ['kitchen', 'stage', 'tables_chairs', 'dance_floor', 'parking']]]],
+            ['Lakeside Park Pavilion', 'outdoor', 'Southbury', 'parks@southbury.example',
+                'A large covered pavilion by the lake with grills, restrooms and a playground next door.',
+                [['Pavilion', 120, 160, 125, ['outdoor_space', 'tables_chairs', 'parking', 'accessible']]]],
+        ] as $n => [$name, $kind, $town, $email, $about, $rooms]) {
+            [$lat, $lng] = self::TOWNS[$town];
+            $v = new Venue(['name' => $name, 'kind' => $kind, 'town' => $town, 'contact_email' => $email, 'about' => $about, 'status' => 'listed']);
+            $v->slug = Venue::uniqueSlug($name, $town);
+            [$v->lat, $v->lng] = [$lat - 0.005 + $n * 0.001, $lng + 0.006 - $n * 0.0012];
+            $v->save();
+            foreach ($rooms as $i => [$room, $seated, $standing, $price, $amen]) {
+                $v->rooms()->create(['name' => $room, 'seated' => $seated, 'standing' => $standing, 'price_from' => $price,
+                    'price_unit' => $kind === 'outdoor' ? 'day' : 'event', 'amenities' => $amen, 'sort_order' => $i]);
+            }
+            if ($n === 0) {
+                $v->claims()->create(['name' => 'Linda Pierce', 'email' => 'linda@maplestreet.example', 'role' => 'Center director',
+                    'note' => 'We get calls every week about renting the gym. Would love to point people here.']);
+            }
+        }
     }
 
     private function organizer(string $name, string $slug, string $color, string $tagline, string $town, string $about): Organizer

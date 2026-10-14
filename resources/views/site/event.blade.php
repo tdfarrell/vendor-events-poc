@@ -145,7 +145,10 @@
                 @if ($event->hasLocation())<div class="mini-map" id="evMap"></div>@endif
                 <p style="margin-bottom:6px"><strong>{{ $event->venue_name }}</strong><br>{{ $event->fullAddress() }}</p>
                 @if ($event->parking_info)<p class="muted" style="font-size:.92rem">🅿️ {{ $event->parking_info }}</p>@endif
-                <a class="btn small" href="{{ $event->directionsUrl() }}" target="_blank" rel="noopener">Directions</a>
+                <div class="row" style="gap:8px">
+                    <a class="btn small" href="{{ $event->directionsUrl() }}" target="_blank" rel="noopener">Directions</a>
+                    @if ($event->venue_id && ($venue = $event->venue) && in_array($venue->status, ['listed', 'active'], true))<a class="btn small" href="{{ $venue->url() }}">About the venue</a>@endif
+                </div>
                 @if ($event->vendor_setup)<p class="muted" style="font-size:.88rem;margin:12px 0 0">Vendor setup: {{ $event->vendor_setup }}</p>@endif
             </div>
         @endif
